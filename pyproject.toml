@@ -26,8 +26,10 @@ dev = [
 google = ["langchain-google-genai>=2.1.0"]
 openai = ["langchain-openai>=0.3.0"]
 anthropic = ["langchain-anthropic>=0.3.0"]
+ollama = ["langchain-ollama>=0.2.0"]
 sqlite = ["langgraph-checkpoint-sqlite>=2.0"]
 postgres = ["langgraph-checkpoint-postgres>=2.0"]
+ui = ["streamlit>=1.36", "python-dotenv>=1.0"]
 
 [project.scripts]
 agent-lab = "langgraph_agent_lab.cli:app"

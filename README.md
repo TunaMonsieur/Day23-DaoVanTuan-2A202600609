@@ -6,6 +6,54 @@ This is a **starter skeleton**. All node implementations, routing logic, and gra
 
 ---
 
+## Submission
+
+| | |
+|---|---|
+| **Student** | Đào Văn Tuân |
+| **Student ID** | 2A202600609 |
+| **Lab** | Day 08 — LangGraph Agentic Orchestration |
+| **Date** | 2026-06-29 |
+| **LLM** | Local Ollama · `kamekichi128/qwen3-4b-instruct-2507` (no cloud key required) |
+
+### Status — all TODOs implemented ✅
+
+| Component | File | Status |
+|---|---|---|
+| State schema (+4 fields: `evaluation_result`, `pending_question`, `proposed_action`, `approval`) | `src/.../state.py` | ✅ |
+| 10 nodes — LLM `classify` (structured output) + LLM `answer` (grounded) | `src/.../nodes.py` | ✅ |
+| 4 routing functions (bounded retry, approval gate) | `src/.../routing.py` | ✅ |
+| Graph wiring — 11 nodes, all paths terminate at `finalize → END` | `src/.../graph.py` | ✅ |
+| SQLite checkpointer (WAL) | `src/.../persistence.py` | ✅ |
+| Report renderer | `src/.../report.py` | ✅ |
+
+### Results
+
+- **Scenario routing: 7/7 correct — success_rate = 100%** (`outputs/metrics.json`)
+- `total_retries = 3`, `total_interrupts = 2` (S04, S06 approvals)
+- **Tests: 25/25 pass** (19 unit + 6 end-to-end smoke running a real LLM)
+- `make grade-local` → metrics valid
+
+### Extensions (bonus)
+
+- **SQLite persistence + time travel** — 12 checkpoints captured per error run (`outputs/state_history.txt`)
+- **Real HITL** — `LANGGRAPH_INTERRUPT=true` pauses risky actions at `interrupt()` and resumes via `Command`
+- **Streamlit demo UI with live tracing** — `make ui` (see [Demo UI](#demo-ui-streamlit--tracing))
+- **Mermaid graph diagram** — `outputs/graph.mmd` via `draw_mermaid()`
+
+### Reproduce
+
+```bash
+python -m venv .venv && .venv/Scripts/activate
+pip install -e '.[dev,ollama,sqlite,ui]'
+ollama pull kamekichi128/qwen3-4b-instruct-2507
+cp .env.example .env   # set OLLAMA_MODEL=kamekichi128/qwen3-4b-instruct-2507:latest
+make test && make run-scenarios && make grade-local
+make ui                # interactive demo
+```
+
+---
+
 ## How you will be graded
 
 | Category | Points | What we look for |
@@ -38,18 +86,28 @@ This lab requires real LLM API calls in specific nodes:
 | `answer_node` | **MUST use LLM** | Grounded response generation using tool_results/context |
 | `evaluate_node` | **SHOULD use LLM** (bonus) | LLM-as-judge to evaluate tool results quality |
 
-A helper is provided in `src/langgraph_agent_lab/llm.py` — it reads your API key from `.env` and returns a LangChain chat model.
+A helper is provided in `src/langgraph_agent_lab/llm.py` — it reads your config from `.env` and returns a LangChain chat model. It supports **local Ollama** (no API key) as well as Gemini / OpenAI / Anthropic, selected automatically by which variable is set.
 
 ```bash
-# Install your preferred LLM provider
-pip install langchain-openai    # for OpenAI
+# Option 1 — Local Ollama (no API key, used for this submission)
+pip install langchain-ollama
+ollama pull kamekichi128/qwen3-4b-instruct-2507   # or any chat model
+# .env:  OLLAMA_MODEL=kamekichi128/qwen3-4b-instruct-2507:latest
+
+# Option 2 — Cloud provider
+pip install langchain-openai      # for OpenAI
 # OR
-pip install langchain-anthropic  # for Anthropic
+pip install langchain-anthropic   # for Anthropic
+# OR
+pip install langchain-google-genai  # for Gemini
 
 # Configure .env
 cp .env.example .env
-# Edit .env and set OPENAI_API_KEY or ANTHROPIC_API_KEY
+# Edit .env and set OLLAMA_MODEL  (or GEMINI_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY)
 ```
+
+> **This submission runs on local Ollama** (`kamekichi128/qwen3-4b-instruct-2507`). `get_llm()`
+> prefers Ollama whenever `OLLAMA_MODEL` is set, so no cloud key is required to reproduce results.
 
 ---
 
@@ -121,23 +179,20 @@ The grading script will also test with scenarios you haven't seen.
 ## Quick start
 
 ```bash
-# Option A: conda
-conda activate ai-lab
-pip install -e '.[dev]'
-pip install langchain-openai  # or langchain-anthropic
-
-# Option B: venv
+# venv (Windows shown; use source .venv/bin/activate on macOS/Linux)
 python -m venv .venv
-source .venv/bin/activate
-pip install -e '.[dev]'
-pip install langchain-openai  # or langchain-anthropic
+.venv/Scripts/activate
+pip install -e '.[dev,ollama,sqlite,ui]'    # local Ollama + persistence + demo UI
+# (for cloud instead: pip install -e '.[dev]' && pip install langchain-openai)
 
 # Configure LLM
 cp .env.example .env
-# Edit .env — set your API key
+# Edit .env — set OLLAMA_MODEL=...  (or a cloud *_API_KEY)
 
 # Verify setup
-make test  # some tests will fail until you implement TODOs
+make test          # all tests pass once nodes/routing/graph are implemented
+make run-scenarios # → outputs/metrics.json + reports/lab_report.md
+make ui            # interactive demo with live tracing
 ```
 
 ---
@@ -207,9 +262,33 @@ Pick one or more:
 | `make test` | Run pytest |
 | `make lint` | Run ruff linter |
 | `make typecheck` | Run mypy type checker |
-| `make run-scenarios` | Execute all scenarios → `outputs/metrics.json` |
+| `make run-scenarios` | Execute all scenarios → `outputs/metrics.json` (+ `reports/lab_report.md`) |
 | `make grade-local` | Validate metrics.json schema |
+| `make ui` | Launch the Streamlit demo UI with live tracing |
+| `make demo` | Generate extension evidence (Mermaid diagram + SQLite state history) |
 | `make clean` | Remove caches and generated files |
+
+---
+
+## Demo UI (Streamlit + tracing)
+
+An interactive demo is provided in [`app/streamlit_app.py`](app/streamlit_app.py):
+
+```bash
+pip install -e '.[ui]'      # streamlit + python-dotenv
+make ui                     # → http://localhost:8501
+```
+
+What it shows:
+
+- **Live trace** — every graph super-step is streamed and rendered as a timeline (node icon,
+  state delta, per-step latency), so you can watch routing, the retry loop, and finalize fire.
+- **Result panel** — route badge, nodes-visited / retries / approvals metrics, grounded answer.
+- **Human-in-the-loop** — toggle *Manual approval* to pause risky actions at `interrupt()` and
+  **Approve / Reject** from the UI (resumes via `Command(resume=…)`).
+- **Time travel** — inspect the full checkpoint history of the last run (use the `sqlite`
+  checkpointer in the sidebar for persistent, crash-resumable runs).
+- Pick a sample from `data/sample/scenarios.jsonl` or type any query.
 
 ---
 

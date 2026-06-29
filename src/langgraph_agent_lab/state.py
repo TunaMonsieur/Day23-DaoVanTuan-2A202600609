@@ -6,9 +6,9 @@ Students should extend the schema only when needed. Keep state lean and serializ
 from __future__ import annotations
 
 from enum import StrEnum
+from operator import add
 from typing import Annotated, Any, TypedDict
 
-from operator import add
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -53,9 +53,18 @@ class AgentState(TypedDict, total=False):
     attempt: int
     max_attempts: int
     final_answer: str | None
-    # TODO(student): you will need additional fields for clarification, risky actions,
-    # approval decisions, and retry-loop gating. Add them as you implement nodes.
-    # Hint: check what your nodes return and what your routing functions read.
+    # Student-added fields (overwrite reducers — they hold the *current* value only):
+    #   evaluation_result : retry-loop gate read by route_after_evaluate
+    #   pending_question  : clarification text for missing_info flow
+    #   proposed_action   : description of a risky action awaiting approval
+    #   approval          : HITL decision dict {approved, reviewer, comment}
+    # These are deliberately overwrite (not append) — only the latest value matters for routing,
+    # which keeps the serialized state lean.
+    evaluation_result: str
+    pending_question: str
+    proposed_action: str
+    approval: dict[str, Any]
+    # Append-only audit channels (add reducer) — accumulate across nodes for grading/debugging.
     messages: Annotated[list[str], add]
     tool_results: Annotated[list[str], add]
     errors: Annotated[list[str], add]

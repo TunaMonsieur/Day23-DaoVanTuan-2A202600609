@@ -13,17 +13,36 @@ from __future__ import annotations
 
 import os
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
 
 def get_llm(model: str | None = None, temperature: float = 0.0):
     """Create an LLM client from environment configuration.
 
-    Checks for API keys in this order:
+    Selection order:
+    0. OLLAMA_MODEL (or LLM_PROVIDER=ollama) → ChatOllama (local, no API key needed)
     1. GEMINI_API_KEY → ChatGoogleGenerativeAI
     2. OPENAI_API_KEY → ChatOpenAI
     3. ANTHROPIC_API_KEY → ChatAnthropic
 
     Override model with the `model` parameter or LLM_MODEL env var.
     """
+    if os.getenv("OLLAMA_MODEL") or os.getenv("LLM_PROVIDER", "").lower() == "ollama":
+        try:
+            from langchain_ollama import ChatOllama
+        except ImportError as exc:
+            raise RuntimeError("Install: pip install langchain-ollama") from exc
+        return ChatOllama(
+            model=model or os.getenv("OLLAMA_MODEL") or os.getenv("LLM_MODEL", "qwen3:4b"),
+            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+            temperature=temperature,
+        )
+
     if os.getenv("GEMINI_API_KEY"):
         try:
             from langchain_google_genai import ChatGoogleGenerativeAI

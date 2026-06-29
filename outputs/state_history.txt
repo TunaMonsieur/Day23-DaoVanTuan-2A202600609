@@ -1,0 +1,20 @@
+thread_id      : thread-demo_error
+sqlite db      : outputs\demo_checkpoints.sqlite (exists=True)
+final route    : error
+final answer   : The initial attempt to process your request failed due to a timeout, but the second attempt was successful. Your request has been processed and is now complete.
+attempts       : 2
+
+=== STATE HISTORY (time travel — newest first) ===
+checkpoints saved: 12
+  [00] next=('END',) attempt=2 route='error'
+  [01] next=('finalize',) attempt=2 route='error'
+  [02] next=('answer',) attempt=2 route='error'
+  [03] next=('evaluate',) attempt=2 route='error'
+  [04] next=('tool',) attempt=2 route='error'
+  [05] next=('retry',) attempt=1 route='error'
+  [06] next=('evaluate',) attempt=1 route='error'
+  [07] next=('tool',) attempt=1 route='error'
+  [08] next=('retry',) attempt=0 route='error'
+  [09] next=('classify',) attempt=0 route=''
+  [10] next=('intake',) attempt=0 route=''
+  [11] next=('__start__',) attempt=None route=None

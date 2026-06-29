@@ -1,34 +1,10 @@
-"""Report generation helper.
-
-TODO(student): implement report rendering using MetricsReport data
-and the template in reports/lab_report_template.md.
-"""
-
-from __future__ import annotations
-
-from datetime import date
-from pathlib import Path
-
-from .metrics import MetricsReport
-
-
-def render_report(metrics: MetricsReport) -> str:
-    """Render a complete lab report (markdown) from metrics data."""
-    rows = []
-    for m in metrics.scenario_metrics:
-        rows.append(
-            f"| {m.scenario_id} | {m.expected_route} | {m.actual_route or '-'} | "
-            f"{'✅' if m.success else '❌'} | {m.retry_count} | {m.interrupt_count} |"
-        )
-    per_scenario = "\n".join(rows) if rows else "| (none) | | | | | |"
-
-    return f"""# Day 08 Lab Report — LangGraph Agentic Orchestration
+# Day 08 Lab Report — LangGraph Agentic Orchestration
 
 ## 1. Team / student
 
 - Name: Dao Van Tuan
 - Repo/commit: Day23-DaoVanTuan-2A202600609
-- Date: {date.today().isoformat()}
+- Date: 2026-06-29
 
 ## 2. Architecture
 
@@ -71,16 +47,22 @@ by four pure functions used in `add_conditional_edges`. Every path terminates at
 
 ## 4. Scenario results
 
-- Total scenarios: **{metrics.total_scenarios}**
-- Success rate: **{metrics.success_rate:.0%}**
-- Avg nodes visited: **{metrics.avg_nodes_visited:.1f}**
-- Total retries: **{metrics.total_retries}**
-- Total interrupts (approvals): **{metrics.total_interrupts}**
-- Resume success: **{metrics.resume_success}**
+- Total scenarios: **7**
+- Success rate: **100%**
+- Avg nodes visited: **6.4**
+- Total retries: **3**
+- Total interrupts (approvals): **2**
+- Resume success: **False**
 
 | Scenario | Expected route | Actual route | Success | Retries | Interrupts |
 |---|---|---|---:|---:|---:|
-{per_scenario}
+| S01_simple | simple | simple | ✅ | 0 | 0 |
+| S02_tool | tool | tool | ✅ | 0 | 0 |
+| S03_missing | missing_info | missing_info | ✅ | 0 | 0 |
+| S04_risky | risky | risky | ✅ | 0 | 1 |
+| S05_error | error | error | ✅ | 2 | 0 |
+| S06_delete | risky | risky | ✅ | 0 | 1 |
+| S07_dead_letter | error | error | ✅ | 1 | 0 |
 
 ## 5. Failure analysis
 
@@ -126,11 +108,3 @@ after a process kill and replayable via time-travel from any checkpoint.
 With one more day: replace the heuristic `evaluate_node` with an LLM-as-judge, add structured
 tool schemas with real retries/backoff, expose the approval interrupt through a small Streamlit UI,
 and add tracing/observability for latency per node.
-"""
-
-
-def write_report(metrics: MetricsReport, output_path: str | Path) -> None:
-    """Write the rendered report to a file."""
-    path = Path(output_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(render_report(metrics), encoding="utf-8")
